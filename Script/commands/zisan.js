@@ -4,7 +4,7 @@ const path = require('path');
 module.exports.config = {
     name: "zisan",
     version: "1.0.0",
-    hasPermssion: 0,
+    hasPermssion: 2,
     credits: "Md shahadat hosen",
     description: "Send one photo at a time from Catbox links",
     commandCategory: "image",
