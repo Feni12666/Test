@@ -3,9 +3,9 @@ const request = require("request");
 
 module.exports.config = {
   name: "boy pp",
-  version: "1.0.5",
+  version: "1.0.6",
   hasPermssion: 0,
-  credits: "𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐒𝐀𝐇𝐔",
+  credits: "𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭",
   description: "Send random Facebook boy profile pictures with stylish captions",
   commandCategory: "Random-IMG",
   usages: "boy pp",
@@ -77,7 +77,7 @@ module.exports.run = async ({ api, event }) => {
 
   const callback = () => {
     api.sendMessage({
-      body: `✨━━━━━━━━━━━━━━━━━✨\n${selectedCaption}\n\n👑 Credit: 𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐒𝐀𝐇𝐔\n✨━━━━━━━━━━━━━━━━━✨`,
+      body: `✨━━━━━━━━━━━━━━━━━✨\n${selectedCaption}\n\n👑 Credit: 𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭\n✨━━━━━━━━━━━━━━━━━✨`,
       attachment: fs.createReadStream(filePath)
     }, event.threadID, () => fs.unlinkSync(filePath));
   };
