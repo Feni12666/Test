@@ -1,18 +1,26 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const axios = require('axios');
 
 module.exports.config = {
     name: "zisan",
-    version: "1.2.0",
-    hasPermssion: 2,
-    credits: "Md shahadat hosen",
+    version: "1.2.2",
+    hasPermssion: 2,            // কেবলমাত্র চেকের জন্য, মূল কন্ট্রোল নিচে
+    credits: "Md Shahadat Hosen",
     description: "Send a random photo without repeating until all are sent",
     commandCategory: "image",
     usages: "uniquephoto",
 };
 
-// মূল ছবি লিস্ট
+// শুধু এই আইডিগুলো কমান্ড চালাতে পারবে
+const allowedAdmins = [
+    "100048230798762",
+    "100001088468923",
+    "61572299956804"
+];
+
+// ছবির লিস্ট
 const allImages = [
     "https://files.catbox.moe/fauyiw.jpg",
     "https://files.catbox.moe/ueyfbu.jpg",
@@ -31,32 +39,33 @@ const allImages = [
     "https://files.catbox.moe/fzfnos.jpg"
 ];
 
-// ব্যবহার করা হবে এমন ছবি লিস্ট (copy of allImages)
 let availableImages = [...allImages];
 
 module.exports.run = async function({ api, event }) {
+    // অনুমতি চেক
+    if (!allowedAdmins.includes(event.senderID)) {
+        return api.sendMessage("এই কমান্ড চালানোর অনুমতি আপনার নেই।", event.threadID);
+    }
+
+    if (availableImages.length === 0) {
+        availableImages = [...allImages];
+    }
+
+    const randomIndex = Math.floor(Math.random() * availableImages.length);
+    const link = availableImages.splice(randomIndex, 1)[0];
+    const imagePath = path.join(os.tmpdir(), `photo_${Date.now()}.jpg`);
+
     try {
-        if (availableImages.length === 0) {
-            // সব ছবি শেষ হলে আবার লিস্ট রিসেট
-            availableImages = [...allImages];
-        }
-
-        // Random index নির্বাচন
-        const randomIndex = Math.floor(Math.random() * availableImages.length);
-        const link = availableImages[randomIndex];
-
-        // ছবিটি remove করা যাতে পরেরবার আর না আসে
-        availableImages.splice(randomIndex, 1);
-
-        const response = await axios.get(link, { responseType: "arraybuffer" });
-        const imagePath = path.join(__dirname, 'temp.jpg');
-        fs.writeFileSync(imagePath, Buffer.from(response.data, 'binary'));
+        const writer = fs.createWriteStream(imagePath);
+        const response = await axios.get(link, { responseType: 'stream' });
+        response.data.pipe(writer);
+        await new Promise(res => writer.on('finish', res));
 
         await api.sendMessage({ attachment: fs.createReadStream(imagePath) }, event.threadID);
-
-        fs.unlinkSync(imagePath);
-    } catch (error) {
-        console.error(error);
-        await api.sendMessage("Sorry, couldn't fetch the image 😔", event.threadID);
+    } catch (err) {
+        console.error(err);
+        await api.sendMessage("ছবি আনতে সমস্যা হয়েছে 😔", event.threadID);
+    } finally {
+        if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
     }
 };
