@@ -1,4 +1,4 @@
-bshbshbshconst schedule = require('node-schedule');
+const schedule = require('node-schedule');
 const moment = require('moment-timezone');
 const chalk = require('chalk');
 
