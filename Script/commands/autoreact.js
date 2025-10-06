@@ -1,4 +1,4 @@
-module.exports.config = {
+:88*'*8"8 &"8&"১২৩৪module.exports.config = {
  name: "autoreact",
  version: "1.1.1",
  hasPermission: 0,
