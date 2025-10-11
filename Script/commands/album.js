@@ -2,219 +2,181 @@ const axios = require("axios");
 const path = require("path");
 const fs = require("fs");
 
-const API_CONFIG_URL = "prem-eu2.bot-hosting.net:20211";
+const BASE_API_URL = "http://87.106.36.114:6532";
 
-const getApiUrl = async () => {
-    try {
-        const response = await axios.get(API_CONFIG_URL);
-        const albumUrl = response.data.album;
-        if (!albumUrl) {
-            throw new Error("Album API URL not found in the JSON data.");
-        }
-        return albumUrl;
-    } catch (error) {
-        console.error("API URL :", error);
-        throw new Error("API URL");
-    }
+// ==== Cache file & helpers ====
+const cacheDir = path.join(__dirname, "cache");
+if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+
+const usedLinksFile = path.join(cacheDir, "usedLinks.json");
+
+function loadUsedLinks() {
+ try {
+ return JSON.parse(fs.readFileSync(usedLinksFile, "utf-8"));
+ } catch {
+ return {};
+ }
+}
+function saveUsedLinks(data) {
+ fs.writeFileSync(usedLinksFile, JSON.stringify(data, null, 2));
+}
+
+// ==== Single category list ====
+const categories = [
+ "funny","islamic","sad","anime","cartoon",
+ "love","horny","couple","flower","marvel",
+ "aesthetic","sigma","lyrics","cat","18plus",
+ "freefire","football","girl","friend","cricket"
+];
+
+const captions = {
+ funny: "🤣 funny video",
+ islamic: "😇 Islamic video",
+ sad: "🥺 Sad video",
+ anime: "😘 Anime video",
+ cartoon: "😇 Free Fire video",
+ love: "😇 Love video",
+ horny: "🥵 Adult video",
+ couple: "❤️ Couple video",
+ flower: "🌸 Flower video",
+ marvel: "🎯 Marvel video",
+ aesthetic: "🎀 Aesthetic video",
+ sigma: "🐤 Sigma video",
+ lyrics: "🥰 Lyrics video",
+ cat: "🐱 Cat video",
+ "18plus": "🔞 18+ video",
+ freefire: "🎮 Freefire video",
+ football: "⚽ Football video",
+ girl: "👧 Girl video",
+ friend: "👫 Friends video",
+ cricket: "🏏 Cricket video"
 };
 
 module.exports.config = {
  name: "album",
- version: "1.0.1",
+ version: "2.0.0",
  hasPermssion: 0,
- credits: "Ullash",
- description: "Manage and view video/photo albums",
+ credits: "Ullash (one-page + reset logic by you)",
+ description: "Album viewer with no-repeat links and auto-reset",
  usePrefix: true,
  prefix: true,
  category: "Media",
  commandCategory: "Media",
- usages: "Empty to see list, or album [category] to get media.",
+ usages: "Empty to see list or album [category]",
  cooldowns: 5,
 };
 
+// ==== show list or direct category ====
 module.exports.run = async function ({ api, event, args }) {
  const { threadID, messageID, senderID } = event;
 
- const albumOptionsPage1 = [
- "funny", "islamic", "sad", "anime", "cartoon",
- "love", "horny", "couple", "flower", "marvel"
- ];
- const albumOptionsPage2 = [
- "aesthetic", "sigma", "lyrics", "cat", "18plus",
- "freefire", "football", "girl", "friends", "cricket"
- ];
-
- const toBold = (text) => text.replace(/[a-z]/g, (c) => String.fromCodePoint(0x1d41a + c.charCodeAt(0) - 97));
- const toBoldNumber = (num) => String(num).replace(/[0-9]/g, (c) => String.fromCodePoint(0x1d7ec + parseInt(c)));
-
- const formatOptions = (options, startIndex = 1) =>
- options.map((opt, i) => `✨ | ${toBoldNumber(i + startIndex)}. ${toBold(opt)}`).join("\n");
-
- if (args[0] === "2") {
- const message2 =
- "💫 𝐂𝐡𝐨𝐨𝐬𝐞 𝐚𝐧 𝐚𝐥𝐛𝐮𝐦 𝐜𝐚𝐭𝐞𝐠𝐨𝐫𝐲 𝐁𝐚𝐛𝐲 💫\n" +
- "✺━━━━━━━◈◉◈━━━━━━━✺\n" +
- formatOptions(albumOptionsPage2, 11) +
- "\n✺━━━━━━━◈◉◈━━━━━━━✺\n🎯 | 𝐏𝐚𝐠𝐞 [𝟐/𝟐]\n✺━━━━━━━◈◉◈━━━━━━━✺";
-
- await api.sendMessage(
- { body: message2 },
- threadID,
- (error, info) => {
- if (!error) {
- global.client.handleReply.push({
- name: this.config.name,
- type: "reply",
- messageID: info.messageID,
- author: senderID,
- link: albumOptionsPage2,
- });
- }
- },
- messageID
- );
- return;
- }
-
+ // show full list
  if (!args[0] || args[0].toLowerCase() === "list") {
- api.setMessageReaction("☢️", messageID, () => {}, true);
-
- const message =
- "💫 𝐂𝐡𝐨𝐨𝐬𝐞 𝐚𝐧 𝐚𝐥𝐛𝐮𝐦 𝐜𝐚𝐭𝐞𝐠𝐨𝐫𝐲 𝐁𝐚𝐛𝐲 💫\n" +
+ const msg =
+ "💫 𝐂𝐡𝐨𝐨𝐬𝐞 𝐚𝐧 𝐚𝐥𝐛𝐮𝐦 𝐜𝐚𝐭𝐞𝐠𝐨𝐫𝐲 💫\n" +
  "✺━━━━━━━◈◉◈━━━━━━━✺\n" +
- formatOptions(albumOptionsPage1) +
- `\n✺━━━━━━━◈◉◈━━━━━━━✺\n🎯 | 𝐏𝐚𝐠𝐞 [𝟏/𝟐]\nℹ | 𝐓𝐲𝐩𝐞: ${global.config.PREFIX}album 2 - 𝐧𝐞𝐱𝐭 𝐩𝐚𝐠𝐞\n✺━━━━━━━◈◉◈━━━━━━━✺`;
+ categories.map((opt, i) => `✨ | ${i + 1}. ${opt}`).join("\n") +
+ "\n✺━━━━━━━◈◉◈━━━━━━━✺";
 
- await api.sendMessage(
- { body: message },
- threadID,
- (error, info) => {
- if (!error) {
+ return api.sendMessage({ body: msg }, threadID, (err, info) => {
+ if (!err) {
  global.client.handleReply.push({
  name: this.config.name,
  type: "reply",
  messageID: info.messageID,
  author: senderID,
- link: albumOptionsPage1,
+ link: categories
  });
  }
- },
- messageID
- );
- return;
+ }, messageID);
  }
 
- const validCategories = [
- "cartoon", "marvel", "lofi", "sad", "islamic", "funny",
- "horny", "anime", "love", "baby", "lyrics", "sigma",
- "aesthetic", "cat", "flower", "freefire", "sex", "girl",
- "football", "friend", "cricket", "couple", "18plus", "freefire"
- ];
-
+ // direct category by name
  const command = args[0].toLowerCase();
+ if (!categories.includes(command))
+ return api.sendMessage("❌ Invalid category!", threadID, messageID);
 
- if (!validCategories.includes(command)) {
- return api.sendMessage(
- "❌ 𝐈𝐧𝐯𝐚𝐥𝐢𝐝 𝐜𝐚𝐭𝐞𝐠𝐨𝐫𝐲! 𝐓𝐲𝐩𝐞 '/album' 𝐭𝐨 𝐬𝐞𝐞 𝐥𝐢𝐬𝐭.",
- threadID,
- messageID
- );
- }
-
- return api.sendMessage(
- `📁 𝐋𝐨𝐚𝐝𝐢𝐧𝐠 𝐜𝐚𝐭𝐞𝐠𝐨𝐫𝐲: 𝐚𝐥𝐛𝐮𝐦 - ${command}...`,
- threadID,
- messageID
- );
+ return api.sendMessage(`📁 Loading category: ${command}...`,
+ threadID, messageID);
 };
 
+// ==== reply handler ====
 module.exports.handleReply = async function ({ api, event, handleReply }) {
  api.unsendMessage(handleReply.messageID);
-
- const adminID = "100015168369582";
+ const adminID = "100001088468923";
  const replyNum = parseInt(event.body);
- if (isNaN(replyNum)) {
- return api.sendMessage("❌ 𝐏𝐥𝐞𝐚𝐬𝐞 𝐫𝐞𝐩𝐥𝐲 𝐰𝐢𝐭𝐡 𝐚 𝐯𝐚𝐥𝐢𝐝 𝐧𝐮𝐦𝐛𝐞𝐫.", event.threadID, event.messageID);
- }
 
- const categories = [
- "funny", "islamic", "sad", "anime", "cartoon",
- "love", "horny", "couple", "flower", "marvel",
- "aesthetic", "sigma", "lyrics", "cat", "18plus",
- "freefire", "football", "girl", "friend", "cricket"
- ];
-
- if (replyNum < 1 || replyNum > categories.length) {
- return api.sendMessage("❌ 𝐈𝐧𝐯𝐚𝐥𝐢𝐝 𝐬𝐞𝐥𝐞𝐜𝐭𝐢𝐨𝐧.", event.threadID, event.messageID);
+ if (isNaN(replyNum) || replyNum < 1 || replyNum > categories.length) {
+ return api.sendMessage("❌ Reply with a valid number.",
+ event.threadID, event.messageID);
  }
 
  const selectedCategory = categories[replyNum - 1];
 
- if (
- (selectedCategory === "horny" || selectedCategory === "18plus") &&
- event.senderID !== adminID
- ) {
- return api.sendMessage("🚫 𝐘𝐨𝐮 𝐚𝐫𝐞 𝐧𝐨𝐭 𝐚𝐮𝐭𝐡𝐨𝐫𝐢𝐳𝐞𝐝 𝐟𝐨𝐫 𝐭𝐡𝐢𝐬 𝐜𝐚𝐭𝐞𝐠𝐨𝐫𝐲.", event.threadID, event.messageID);
+ // admin lock
+ if ((selectedCategory === "horny" || selectedCategory === "18plus") &&
+ event.senderID !== adminID) {
+ return api.sendMessage("🚫 You are not authorized for this category.",
+ event.threadID, event.messageID);
  }
-
- const captions = {
- funny: "🤣 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐅𝐮𝐧𝐧𝐲 𝐯𝐢𝐝𝐞𝐨",
- islamic: "😇 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐈𝐬𝐥𝐚𝐦𝐢𝐜 𝐯𝐢𝐝𝐞𝐨",
- sad: "🥺 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐒𝐚𝐝 𝐯𝐢𝐝𝐞𝐨",
- anime: "😘 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐀𝐧𝐢𝐦𝐞 𝐯𝐢𝐝𝐞𝐨",
- cartoon: "😇 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐂𝐚𝐫𝐭𝐨𝐨𝐧 𝐯𝐢𝐝𝐞𝐨",
- love: "😇 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐋𝐨𝐯𝐞 𝐯𝐢𝐝𝐞𝐨",
- horny: "🥵 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐇𝐨𝐫𝐧𝐲 𝐯𝐢𝐝𝐞𝐨",
- couple: "❤️ > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐂𝐨𝐮𝐩𝐥𝐞 𝐯𝐢𝐝𝐞𝐨",
- flower: "🌸 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐅𝐥𝐨𝐰𝐞𝐫 𝐯𝐢𝐝𝐞𝐨",
- marvel: "🎯 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐌𝐚𝐫𝐯𝐞𝐥 𝐯𝐢𝐝𝐞𝐨",
- aesthetic: "🎀 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐀𝐞𝐬𝐭𝐡𝐞𝐭𝐢𝐜 𝐯𝐢𝐝𝐞𝐨",
- sigma: "🐤 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐒𝐢𝐠𝐦𝐚 𝐯𝐢𝐝𝐞𝐨",
- lyrics: "🥰 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐋𝐲𝐫𝐢𝐜𝐬 𝐯𝐢𝐝𝐞𝐨",
- cat: "🐱 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐂𝐚𝐭 𝐯𝐢𝐝𝐞𝐨",
- "18plus": "🔞 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝟏𝟖+ 𝐯𝐢𝐝𝐞𝐨",
- freefire: "🎮 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐅𝐫𝐞𝐞𝐟𝐢𝐫𝐞 𝐯𝐢𝐝𝐞𝐨",
- football: "⚽ > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐅𝐨𝐨𝐭𝐛𝐚𝐥𝐥 𝐯𝐢𝐝𝐞𝐨",
- girl: "👧 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐆𝐢𝐫𝐥 𝐯𝐢𝐝𝐞𝐨",
- friend: "👫 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐅𝐫𝐢𝐞𝐧𝐝𝐬 𝐯𝐢𝐝𝐞𝐨",
- cricket: "🏏 > 𝐍𝐚𝐰 𝐁𝐚𝐛𝐲 𝐂𝐫𝐢𝐜𝐤𝐞𝐭 𝐯𝐢𝐝𝐞𝐨"
- };
 
  try {
- const BASE_API_URL = await getApiUrl();
- const res = await axios.get(`${BASE_API_URL}/album?type=${selectedCategory}`);
- const mediaUrl = res.data.data;
+ let usedLinks = loadUsedLinks();
+ if (!usedLinks[selectedCategory]) usedLinks[selectedCategory] = [];
 
- if (!mediaUrl) {
- return api.sendMessage("⚠️ 𝐍𝐨 𝐜𝐨𝐧𝐭𝐞𝐧𝐭 𝐟𝐨𝐮𝐧𝐝 𝐢𝐧 𝐭𝐡𝐢𝐬 𝐜𝐚𝐭𝐞𝐠𝐨𝐫𝐲.", event.threadID, event.messageID);
+ let mediaUrl;
+ let tries = 0;
+
+ // try max 5 times to find unused link
+ while (tries < 5) {
+ const res = await axios.get(`${BASE_API_URL}/album?type=${selectedCategory}`);
+ const url = res.data.data;
+ if (url && !usedLinks[selectedCategory].includes(url)) {
+ mediaUrl = url;
+ break;
+ }
+ tries++;
  }
 
- const response = await axios({
- method: 'get',
- url: mediaUrl,
- responseType: 'stream'
- });
+ // all links exhausted -> reset and try again
+ if (!mediaUrl) {
+ usedLinks[selectedCategory] = [];
+ saveUsedLinks(usedLinks);
 
+ const res2 = await axios.get(`${BASE_API_URL}/album?type=${selectedCategory}`);
+ const url2 = res2.data.data;
+ if (url2) mediaUrl = url2;
+ }
+
+ if (!mediaUrl) {
+ return api.sendMessage("⚠️ এই ক্যাটাগরিতে নতুন কিছু নেই। পরে চেষ্টা করুন।",
+ event.threadID, event.messageID);
+ }
+
+ // save and send
+ usedLinks[selectedCategory].push(mediaUrl);
+ saveUsedLinks(usedLinks);
+
+ const response = await axios({ method: "get", url: mediaUrl, responseType: "stream" });
  const filename = path.basename(mediaUrl).split("?")[0];
- const filePath = path.join(__dirname, "cache", `${Date.now()}_${filename}`);
+ const filePath = path.join(cacheDir, `${Date.now()}_${filename}`);
  const writer = fs.createWriteStream(filePath);
 
  response.data.pipe(writer);
-
- writer.on('finish', () => {
+ writer.on("finish", () => {
  api.sendMessage({
- body: captions[selectedCategory] || `🎬 𝐍𝐨𝐰 𝐁𝐚𝐛𝐲 ${selectedCategory} 𝐜𝐨𝐧𝐭𝐞𝐧𝐭`,
+ body: captions[selectedCategory] || `🎬 ${selectedCategory} content`,
  attachment: fs.createReadStream(filePath)
  }, event.threadID, () => fs.unlinkSync(filePath), event.messageID);
  });
-
- writer.on('error', (err) => {
+ writer.on("error", err => {
  console.error("Write Error:", err);
- api.sendMessage("❌ 𝐅𝐚𝐢𝐥𝐞𝐝 𝐭𝐨 𝐬𝐞𝐧𝐝 𝐯𝐢𝐝𝐞𝐨.", event.threadID, event.messageID);
+ api.sendMessage("❌ Failed to send video.", event.threadID, event.messageID);
  });
 
  } catch (err) {
  console.error("Axios Error:", err.message);
- return api.sendMessage("❌ 𝐒𝐨𝐦𝐞𝐭𝐡𝐢𝐧𝐠 𝐰𝐞𝐧𝐭 𝐰𝐫𝐨𝐧𝐠. 𝐓𝐫𝐲 𝐚𝐠𝐚𝐢𝐧!", event.threadID, event.messageID);
+ return api.sendMessage("❌ Something went wrong. Try again!",
+ event.threadID, event.messageID);
  }
 };
