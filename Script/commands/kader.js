@@ -14,7 +14,6 @@ module.exports.config = {
     }
 };
 
-// টেক্সট wrapping ফাংশন
 module.exports.wrapText = (ctx, text, maxWidth) => {
     return new Promise(resolve => {
         if (ctx.measureText(text).width < maxWidth) return resolve([text]);
@@ -54,7 +53,6 @@ module.exports.run = async function ({ api, event, args }) {
     const axios = global.nodemodule["axios"];
     const { threadID, messageID } = event;
 
-    // বাংলা ফন্ট লোড করা (Google NotoSansBengali)
     const fontPath = __dirname + "/cache/NotoSansBengali.ttf";
     if (!fs.existsSync(fontPath)) {
         const fontBuffer = (await axios.get("https://github.com/googlefonts/noto-fonts/raw/main/hinted/ttf/NotoSansBengali/NotoSansBengali-Regular.ttf", { responseType: 'arraybuffer' })).data;
@@ -67,12 +65,10 @@ module.exports.run = async function ({ api, event, args }) {
 
     const pathImg = __dirname + '/cache/kaderbn.png';
 
-    // 📷 বেস ইমেজ ডাউনলোড
     const imageURL = "https://i.postimg.cc/Bn5cvc8P/Pics-Art-08-14-11-32-52.jpg";
     const imageBuffer = (await axios.get(imageURL, { responseType: 'arraybuffer' })).data;
     fs.writeFileSync(pathImg, Buffer.from(imageBuffer, 'utf-8'));
 
-    // 🧠 ক্যানভাস তৈরি
     const baseImage = await loadImage(pathImg);
     const canvas = createCanvas(baseImage.width, baseImage.height);
     const ctx = canvas.getContext("2d");
@@ -84,21 +80,17 @@ module.exports.run = async function ({ api, event, args }) {
     let fontSize = 50;
     ctx.font = `400 ${fontSize}px "NotoSansBengali"`;
 
-    // 📏 ফন্ট সাইজ অ্যাডজাস্ট
     while (ctx.measureText(text).width > 1160) {
         fontSize--;
         ctx.font = `400 ${fontSize}px "NotoSansBengali"`;
     }
 
-    // 🧾 টেক্সট wrapping
     const lines = await this.wrapText(ctx, text, 1160);
     ctx.fillText(lines.join('\n'), 30, 179);
 
-    // 💾 ফাইনাল ইমেজ তৈরি
     const finalBuffer = canvas.toBuffer();
     fs.writeFileSync(pathImg, finalBuffer);
 
-    // 📤 মেসেজ পাঠানো
     return api.sendMessage(
         { attachment: fs.createReadStream(pathImg) },
         threadID,
