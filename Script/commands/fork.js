@@ -1,5 +1,5 @@
 module.exports.config = {
-name: "fork",
+name: "noofork",
 version: "1.0.0",
 hasPermssion: 0,
 credits: "SHAHADAT SAHU",
