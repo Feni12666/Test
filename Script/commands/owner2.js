@@ -5,7 +5,7 @@ module.exports.config = {
  name: "owner2",
  version: "1.0.1",
  hasPermssion: 0,
- credits: "Shahadat SAHU",
+ credits: "Shahadat ",
  description: "Display bot owner's information",
  commandCategory: "Info",
  usages: "",
@@ -18,7 +18,7 @@ module.exports.config = {
 };
 
 module.exports.run = async function ({ api, event }) {
- const imageUrl = "https://graph.facebook.com/100001039692046/picture?height=720&width=720&access_token=6628568379|c1e620fa708a1d5696fb991c1bde5662";
+ const imageUrl = "https://graph.facebook.com/100001088468923/picture?height=720&width=720&access_token=6628568379|c1e620fa708a1d5696fb991c1bde5662";
  const path = __dirname + "/cache/owner.png";
 
  request(imageUrl)
@@ -28,7 +28,7 @@ module.exports.run = async function ({ api, event }) {
  body:
 `🌟 𝗢𝗪𝗡𝗘𝗥 𝗜𝗡𝗙𝗢 🌟
 
-👑 𝗡𝗮𝗺𝗲: Shahadat Islam😘
+👑 𝗡𝗮𝗺𝗲: Shahadat 😘
 😻 𝗔𝗱𝗱𝗿𝗲𝘀𝘀: মেয়েদের মনে🙈
 💼 𝗣𝗿𝗼𝗳𝗲𝘀𝘀𝗶𝗼𝗻: মেয়েদের মন জয় করা😍
 
