@@ -6,7 +6,7 @@ const reactionCancel = "👎";
 module.exports.config = {
   name: "autokick",
   version: "1.1.0",
-  credits: "SHAHADAT SAHU",
+  credits: "SHAHADAT  ",
   hasPermssion: 1,
   description: "Automatically kick users who use banned words.",
   usages: "<on/off/add/del/list>",
@@ -74,7 +74,7 @@ module.exports.run = async ({ api, event, args }) => {
         "• autokick on → Enable auto-kick\n" +
         "• autokick off → Disable auto-kick\n\n" +
         "❤️ = Kick User\n👎 = Cancel Kick\n\n" +
-        "👑 Developed by SHAHADAT SAHU",
+        "👑 Developed by SHAHADAT  ",
         threadID,
         event.messageID
       );
