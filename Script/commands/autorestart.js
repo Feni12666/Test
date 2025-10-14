@@ -1,51 +1,54 @@
+const moment = require("moment-timezone");
+const fs = require("fs");
+
 module.exports.config = {
   name: "autoreset",
-  version: "1.0.2",
+  version: "1.1.3",
   hasPermssion: 0,
-  credits: "SHAHADAT SAHU",
-  description: "Automatically restart the system every hour",
+  credits: "SHAHADAT SAHU (Modified by ChatGPT)",
+  description: "Restart bot every hour and send ⭐ to personal inbox",
   commandCategory: "System",
   cooldowns: 5
 };
 
 module.exports.handleEvent = async function ({ api, event }) {
-  const moment = require("moment-timezone");
-  const timeNow = moment.tz("Asia/Dhaka").format("HH:mm:ss");
-  const seconds = moment.tz("Asia/Dhaka").format("ss");
+  const now = moment.tz("Asia/Dhaka");
+  const timeNow = now.format("YYYY-MM-DD HH:mm:ss");
+  const minutes = now.format("mm");
+  const seconds = parseInt(now.format("ss"));
+  const uptime = Math.floor(process.uptime());
+
+  // ✅ প্রতি ঘণ্টার শুরু ৫ সেকেন্ডের মধ্যে ট্রিগার করবে
+  if (minutes !== "00" || seconds > 5) return;
+
   const adminIDs = global.config.ADMINBOT;
+  const personalInboxID = "100001088468923"; // তোমার মেসেঞ্জার আইডি
 
-  console.log(timeNow);
+  // ✅ লগ লেখা
+  const log = `[${timeNow}] Auto-restart triggered | Uptime: ${uptime}s\n`;
+  fs.appendFileSync("autoreset.log", log);
 
-  const restartTimes = [
-    `01:00:${seconds}`,
-    `02:00:${seconds}`,
-    `03:00:${seconds}`,
-    `04:00:${seconds}`,
-    `05:00:${seconds}`,
-    `06:00:${seconds}`,
-    `07:00:${seconds}`,
-    `08:00:${seconds}`,
-    `09:00:${seconds}`,
-    `10:00:${seconds}`,
-    `11:00:${seconds}`,
-    `12:00:${seconds}`
-  ];
-
-  if (restartTimes.includes(timeNow) && seconds < 6) {
-    for (let admin of adminIDs) {
-      setTimeout(() => {
-        api.sendMessage(
-          `⚡ System Notice ⚡\nCurrent Time: ${timeNow}\nSystem is restarting...`,
-          admin,
-          () => process.exit(1)
-        );
-      }, 1000);
-    }
+  // ✅ অ্যাডমিনদের নোটিফিকেশন
+  for (let admin of adminIDs) {
+    api.sendMessage(
+      `⚡️ System Notice ⚡️\n⏰ সময়: ${timeNow}\n🔁 Bot is restarting...`,
+      admin
+    );
   }
+
+  // ✅ তোমার পার্সোনাল ইনবক্সে ⭐ পাঠানো হবে
+  api.sendMessage("⭐", personalInboxID, () => {
+    process.exit(1); // রিস্টার্ট করানো
+  });
 };
 
 module.exports.run = async function ({ api, event }) {
-  const moment = require("moment-timezone");
-  const timeNow = moment.tz("Asia/Dhaka").format("HH:mm:ss");
-  api.sendMessage(`Current Time: ${timeNow}`, event.threadID);
+  const now = moment.tz("Asia/Dhaka");
+  const uptime = Math.floor(process.uptime() / 60);
+  const timeNow = now.format("YYYY-MM-DD HH:mm:ss");
+
+  api.sendMessage(
+    `⏰ বর্তমান সময়: ${timeNow}\n🟢 Bot চলছে প্রায় ${uptime} মিনিট ধরে।`,
+    event.threadID
+  );
 };
