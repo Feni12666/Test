@@ -1,12 +1,12 @@
 module.exports.config = {
   name: "anh",
-  version: "1.0.0",
-  hasPermssion: 2,
-  credits: "Trung Kiên",
-  description: "Random ảnh 18+",
-  commandCategory: "nsfw",
-  usages: "anh",
-  cooldowns: 5,
+  version: "1.2.0",
+  hasPermssion: 0,
+  credits: "S H ONIK (Modified by GPT-5)",
+  description: "Send one or multiple random non-repeating images",
+  commandCategory: "fun",
+  usages: "anh [number]",
+  cooldowns: 3,
   dependencies: {
     "request": "",
     "fs-extra": "",
@@ -14,12 +14,19 @@ module.exports.config = {
   }
 };
 
-module.exports.run = async ({ api, event, Currencies }) => {
+let usedImages = []; // আগের পাঠানো ছবির লিস্ট
+
+module.exports.run = async ({ api, event, args }) => {
   const axios = global.nodemodule["axios"];
   const request = global.nodemodule["request"];
   const fs = global.nodemodule["fs-extra"];
+  const path = __dirname + "/cache";
 
-  var link = [
+  // cache ফোল্ডার না থাকলে তৈরি করো
+  if (!fs.existsSync(path)) fs.mkdirSync(path);
+
+  // ছবির লিস্ট
+  const links = [
     "https://i.postimg.cc/wTJNSC1G/E-B9ea-WQAAst-Yg.jpg",
 "https://i.postimg.cc/sgrWyTSD/E-B9eb-AWUAINyt-B.jpg",
 "https://i.postimg.cc/TYcj48LJ/E02i-P-q-XIAE62tu.jpg",
@@ -379,23 +386,50 @@ module.exports.run = async ({ api, event, Currencies }) => {
 "https://i.postimg.cc/9MdSgW6Y/ht-D3-Wi-JQM0md-Fc-Ig.jpg",
 "https://i.postimg.cc/L6CWbQbw/q1o-DN4-IN-Zd6-K5s7.jpg",
 "https://i.postimg.cc/1th2Kgjz/Vbn0-ZPWBu-CB05-j-J.jpg",
-"https://i.postimg.cc/J7Qvbzc1/zpbi-Yu-P1-WBTUrc.jpg",
-    // ... এখানে আগের লিংকগুলা সব রেখে দাও
+"https://i.postimg.cc/J7Qvbzc1/zpbi-Yu-P1-WBTUrc.jpg"
+    // চাইলে আরও লিংক যোগ করো
   ];
 
-  // র্যান্ডম লিংক বাছাই
-  var randomLink = link[Math.floor(Math.random() * link.length)];
+  // কতগুলো ছবি লাগবে
+  let count = parseInt(args[0]) || 1;
+  if (count < 1) count = 1;
+  if (count > links.length) count = links.length;
 
-  // ছবি ডাউনলোড এবং পাঠানো
-  var callback = () => api.sendMessage(
-    { 
-      body: `𝗥𝗮𝗻𝗱𝗼𝗺 𝗮̉𝗻𝗵 🍒\n𝗧𝗼̂̉𝗻𝗴 𝗮̉𝗻𝗵: ${link.length}`,
-      attachment: fs.createReadStream(__dirname + "/cache/1.jpg")
-    }, 
-    event.threadID, 
-    () => fs.unlinkSync(__dirname + "/cache/1.jpg"), 
-    event.messageID
-  );
+  // সব ছবি পাঠানো হয়ে গেলে reset করো
+  if (usedImages.length === links.length) usedImages = [];
 
-  request(encodeURI(randomLink)).pipe(fs.createWriteStream(__dirname + "/cache/1.jpg")).on("close", () => callback());
+  // এখন থেকে যেগুলো বাকি আছে, সেগুলো থেকে র‍্যান্ডম বাছাই
+  let available = links.filter(link => !usedImages.includes(link));
+  let selected = [];
+
+  // count অনুযায়ী র‍্যান্ডম ছবি বাছাই, রিপিট ছাড়া
+  for (let i = 0; i < count; i++) {
+    if (available.length === 0) break;
+    let randomIndex = Math.floor(Math.random() * available.length);
+    let chosen = available[randomIndex];
+    selected.push(chosen);
+    usedImages.push(chosen);
+    available.splice(randomIndex, 1);
+  }
+
+  // প্রতিটা ছবি ডাউনলোড করো
+  const attachments = [];
+  for (let i = 0; i < selected.length; i++) {
+    const imgPath = `${path}/img_${i}.jpg`;
+    const res = await axios.get(encodeURI(selected[i]), { responseType: "arraybuffer" });
+    fs.writeFileSync(imgPath, Buffer.from(res.data, "binary"));
+    attachments.push(fs.createReadStream(imgPath));
+  }
+
+  // সব ছবি একসাথে পাঠানো
+  api.sendMessage({
+    body: `📸 মোট ${selected.length}টা র‍্যান্ডম ছবি পাঠানো হলো (${usedImages.length}/${links.length})`,
+    attachment: attachments
+  }, event.threadID, () => {
+    // সব ক্যাশ মুছে দাও
+    for (let i = 0; i < selected.length; i++) {
+      const imgPath = `${path}/img_${i}.jpg`;
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+  }, event.messageID);
 };
