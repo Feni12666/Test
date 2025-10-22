@@ -1,7 +1,7 @@
 module.exports.config = {
   name: "anh",
   version: "1.2.0",
-  hasPermssion: 0,
+  hasPermssion: 2,
   credits: "S H ONIK (Modified by GPT-5)",
   description: "Send one or multiple random non-repeating images",
   commandCategory: "fun",
